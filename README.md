@@ -67,7 +67,7 @@ known local state + action
 
 ## Boundaries & privacy
 
-This project is independent and contains no LOGOS code, private traces, user information, credentials or proprietary platform integrations. Its public interface (`LatentBrain`, `brain_predictor`, `plan`) can be wrapped by private consumers outside this repository. If contributing traces, only submit data you have a right to distribute and that have been reviewed for personal/sensitive content and trade secrets.
+Its public interface (`LatentBrain`, `brain_predictor`, `plan`) can be wrapped by private consumers outside this repository. If contributing traces, only submit data you have a right to distribute and that have been reviewed for personal/sensitive content and trade secrets.
 
 ## Future milestones (NOT implemented)
 
