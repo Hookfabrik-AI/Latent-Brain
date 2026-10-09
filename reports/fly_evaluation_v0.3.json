@@ -1,0 +1,36 @@
+{
+  "training": {
+    "config": {
+      "seed": 42,
+      "train_maps": 90,
+      "test_maps": 30,
+      "size": 7,
+      "epochs": 8,
+      "hidden_size": 48,
+      "learning_rate": 0.003
+    },
+    "episodes": 261,
+    "train_losses": [
+      0.517657,
+      0.320205,
+      0.273547,
+      0.257151,
+      0.232793,
+      0.218711,
+      0.213314,
+      0.192297
+    ],
+    "objective": "supervised verified shortest-path demonstrations + proxy compute labels + latent consistency",
+    "train_eval_maps_disjoint": true
+  },
+  "evaluation": {
+    "held_out_maps": 30,
+    "fly_successes": 27,
+    "same_policy_depth_1_successes": 23,
+    "greedy_baseline_successes": 11,
+    "a_star_world_model_successes": 30,
+    "mean_selected_budget": 1.283,
+    "actual_executed_steps": 558,
+    "note": "All success claims come from real replay. This is a toy maze benchmark, not LLM reasoning proof."
+  }
+}

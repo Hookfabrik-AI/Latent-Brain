@@ -1,106 +1,125 @@
-# Latent Brain
+<div align="center">
 
-**A small, standalone, CPU-first neural world-model experiment.**
+# 🧠 Latent Brain
 
-> Status: **research prototype v0.2**. Not an AGI, a general reasoning model, or a verified improvement to any LLM. This repository contains **no proprietary agent/controller code**.
+### Learn. Simulate. Verify.
 
-The goal is to test a falsifiable claim: **Can a small network learn transition dynamics from verified experiences on training environments, generalize to unseen environments, and support model-based lookahead that improves actual task completion over a simple reactive heuristic?**
+**Open-source, CPU-first experiments in learned state, recurrent memory, action selection, and bounded imagination.**
 
-## What works in v0.2
+[![Tests](https://github.com/Hookfabrik-AI/Latent-Brain/actions/workflows/tests.yml/badge.svg)](https://github.com/Hookfabrik-AI/Latent-Brain/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/Python-3.10%2B-8c98ca)
+![CPU](https://img.shields.io/badge/CPU--first-yes-8dddc8)
+![License](https://img.shields.io/badge/License-Apache%202.0-c7a9ec)
+![Research](https://img.shields.io/badge/Status-Experimental-d6b89e)
 
-- Deterministic, procedurally generated maze environments with real move/reward rules and held-out layouts.
-- A small **recurrent GRU-based latent feature refiner**, trained to predict if a requested move will succeed.
-- Model-based planning: **A\*** simulates predicted transitions, never calls the ground-truth transition engine during planning, and produces a candidate plan.
-- Independent verification: the proposed plan is replayed in the **real** environment, and failed plans are counted as failures.
-- Honest baselines: majority-class prediction, a one-step greedy agent with map access, and an oracle planning ceiling.
-- Parameter count, training losses, held-out transition accuracy and actual navigation success are recorded.
-- Local-only, versioned JSON HTTP API for inference and candidate planning (no extra web-framework dependency).
+**[Explore the project site](https://hookfabrik-ai.github.io/Latent-Brain/)** · **[Run locally](#quick-start)** · **[Read the research](docs/FLYBRAIN.md)** · **[API reference](docs/API.md)**
 
-**Important limitation:** The hidden state is refined recurrently *within each prediction*, not maintained persistently across world steps. A\* supplies the explicit search algorithm; the neural model supplies transition predictions. This is **not yet autonomous learned reasoning**, variable-depth deliberation, online learning, or LLM integration. Those are future experiments, not existing features.
+</div>
+
+---
+
+> **Research prototype v0.3.** Not AGI, general-purpose reasoning, or a demonstrated enhancement to any LLM. All benchmarks are on small toy maze environments.
+
+## Why it exists
+
+Can a tiny neural system learn from real state transitions and verified demonstrations, remember an episode's history, imagine short futures, and choose actions more effectively than simple heuristics? **Latent Brain** provides reproducible experiments to investigate this question rather than assuming an answer.
+
+## What is implemented
+
+| Component | What it actually does |
+|:--|:--|
+| Recurrent memory | A GRU maintains hidden state *within* an episode. |
+| Action preference | A trained policy head proposes one of four maze actions. |
+| Bounded imagination | A learned hidden-state predictor and bounded rollouts evaluate candidate moves. |
+| Thinking budget | A budget head chooses between 1, 2 or 4 simulated steps, currently trained from heuristic proxy labels. |
+| World model | Separate learned transition predictor estimates whether a movement can succeed. |
+| External evidence | Independent maze replay judges whether a candidate plan truly worked. |
+| Local API | CPU-only HTTP inference on loopback; it does not execute or verify proposed actions. |
+
+### Architecture
+
+```mermaid
+flowchart LR
+    A[Observation] --> B[Recurrent memory]
+    B --> C[Action / budget heads]
+    C --> D[Bounded imagination]
+    D --> E[Candidate action]
+    E --> F[Independent environment replay]
+    F --> G[Verified outcome]
+```
+
+## Held-out results
+
+**Three training seeds, 30 held-out 7×7 mazes each:**
+
+| Method | Solved / 90 |
+|:--|--:|
+| FlyBrain with adaptive depth | **77** |
+| Same FlyBrain with fixed depth 1 | **74** |
+| A* with learned transition model | **90** |
+
+The adaptive method **did not consistently outperform** its fixed-depth counterpart across the three seeds. A* was better on this toy experiment. These findings do **not** establish general reasoning capabilities. See [design, protocols and the seed-by-seed results](docs/FLYBRAIN.md).
 
 ## Quick start
 
-Python 3.10+; CPU only is sufficient. PyTorch wheels can be large.
+Python 3.10+ and PyTorch are required. CPU training/inference are supported.
 
 ```bash
+git clone https://github.com/Hookfabrik-AI/Latent-Brain.git
+cd Latent-Brain
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[test]'
 python -m pytest -q
-python -m latent_brain train
-python -m latent_brain evaluate
-python -m latent_brain demo
 ```
 
-Outputs: `checkpoints/brain.pt` and `reports/evaluation.json` (ignored by git by default). Evaluation automatically uses **held-out seed/layouts** stored in the checkpoint metadata, not an overlapping training split. No API keys are required. A small demonstration checkpoint is also included at `examples/pretrained_v0.1.pt` (see the published evaluation protocol; do not assume its metrics transfer to other tasks).
-
-To run a quick demo using the included weights without first training, run `python -m latent_brain demo --checkpoint examples/pretrained_v0.1.pt`.
-
-To experiment with hidden size and recurrent computation:
+Run the bundled FlyBrain sample without retraining:
 
 ```bash
-python -m latent_brain train --hidden-size 128 --thinking-steps 4 --epochs 12
-python -m latent_brain evaluate
+python -m latent_brain demo-fly \
+  --fly-checkpoint examples/pretrained_fly_v0.3.pt \
+  --checkpoint examples/pretrained_v0.1.pt
 ```
 
-### Local HTTP API (v0.2)
-
-The API loads an existing checkpoint **once** and serves CPU inference. It does not
-train, contact an external LLM, or execute the actions it proposes.
+Train and evaluate independently:
 
 ```bash
-python -m latent_brain serve --checkpoint examples/pretrained_v0.1.pt --port 8767
+python -m latent_brain train-fly --fly-checkpoint checkpoints/fly.pt
+python -m latent_brain evaluate-fly \
+  --fly-checkpoint checkpoints/fly.pt \
+  --checkpoint examples/pretrained_v0.1.pt
+```
+
+## Local inference API
+
+Start the HTTP API (loopback only):
+
+```bash
+python -m latent_brain serve \
+  --checkpoint examples/pretrained_v0.1.pt \
+  --fly-checkpoint examples/pretrained_fly_v0.3.pt \
+  --port 8767
+```
+
+```bash
 curl http://127.0.0.1:8767/v1/health
-curl -s http://127.0.0.1:8767/v1/predict \
-  -H 'Content-Type: application/json' \
-  -d '{"rows":["...",".#.","..."],"queries":[{"state":[0,0],"action":"right"}]}'
-curl -s http://127.0.0.1:8767/v1/plan \
-  -H 'Content-Type: application/json' \
-  -d '{"rows":["...",".#.","..."]}'
 ```
 
-Only `127.0.0.1`/`localhost` is supported: no remote exposure or authentication
-is implemented. The API's `verification: not_executed` output makes clear that
-plans are hypotheses, **not proof of execution**. See [API documentation](docs/API.md).
+Endpoints: `GET /v1/health`, `POST /v1/predict`, `POST /v1/plan`, `POST /v1/fly/decide`. **Returned plans are hypotheses, not verified results.** More examples: [API reference](docs/API.md).
 
-### Results / proof standard
+## Research boundaries
 
-After executing the commands, use the **actual generated `reports/evaluation.json`**. We do not report benchmark wins unless a reproducible run demonstrates them. A successful test suite alone says nothing about learned planning quality. Rerun over multiple seeds before drawing conclusions; the simple greedy baseline is not a strong model-based planning comparison.
+- Actions are learned from *verified expert demonstrations*, not online trial-and-error RL.
+- The thinking-budget labels are heuristic proxies, not measured optimal compute allocations.
+- The one-step learned hidden-state model is not a general long-horizon world model.
+- No coding LLM integration or demonstrated lift on real coding benchmarks exists yet.
+- Published test reports and checkpoints support reproduction; results on other tasks must be established separately.
 
-## Diagram
+## Documentation
 
-```text
-known local state + action
-          |
-          v
-  encoder + GRU refinement   <-- trained from verified transitions
-          |
-          v
-  predicted move succeeds?
-          |
-          v
- A* hypothetical rollouts    <-- no calls to true transition rules
-          |
-          v
-  proposed action sequence
-          |
-          v
- independent real replay     <-- source of truth
-```
+[FlyBrain design](docs/FLYBRAIN.md) · [Experiments](docs/EXPERIMENTS.md) · [Results](docs/RESULTS.md) · [API](docs/API.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
-## Boundaries & privacy
-
-Its public interface (`LatentBrain`, `brain_predictor`, `plan`) can be wrapped by private consumers outside this repository. If contributing traces, only submit data you have a right to distribute and that have been reviewed for personal/sensitive content and trade secrets.
-
-## Future milestones (NOT implemented)
-
-1. Predict multi-step latent dynamics; measure rollout error accumulation.
-2. Add adaptive thinking-budget learning rather than fixed GRU iterations.
-3. Learn from isolated, online experiments using real rewards rather than only supervised transitions.
-4. Compare against **the same planner using a non-neural transition model** and stronger alternatives, across multiple unseen tasks and seeds.
-5. Public neutral adapter for external coding LLMs; test same coder with vs without the model at equal budgets.
-
-See [research protocol](docs/EXPERIMENTS.md), [reproducible results](docs/RESULTS.md), [contributing](CONTRIBUTING.md), and [security](SECURITY.md).
+Contributions are welcome, especially new held-out environments, calibrated baselines, adversarial evaluation, and meaningful ablations.
 
 ## License
 

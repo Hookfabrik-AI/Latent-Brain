@@ -60,12 +60,14 @@ def parse_state(value: Any, maze: Maze) -> tuple[int, int]:
 class BrainService:
     """Read-only inference; checkpoint is loaded once by the caller."""
 
-    def __init__(self, brain: torch.nn.Module):
+    def __init__(self, brain: torch.nn.Module, fly=None):
         self.brain = brain.cpu().eval()
+        self.fly = fly.cpu().eval() if fly is not None else None
 
     def health(self) -> dict:
         return {"status": "ok", "api_version": "v1", "device": "cpu",
-                "model": self.brain.metadata(), "model_loaded": True}
+                "model": self.brain.metadata(), "model_loaded": True,
+                "fly_loaded": self.fly is not None}
 
     def predict(self, payload: dict) -> dict:
         maze = parse_maze(payload.get("rows"))
@@ -115,6 +117,35 @@ class BrainService:
         }
 
 
+    def fly_decision(self, payload: dict) -> dict:
+        """Stateless request: history is replayed to recreate per-episode memory."""
+        if self.fly is None:
+            raise RuntimeError("fly_model_not_loaded")
+        from .fly import FlySession, decide
+        from .planning import brain_predictor
+        maze = parse_maze(payload.get("rows"))
+        state = parse_state(payload.get("state"), maze)
+        history = payload.get("history", [])
+        if not isinstance(history, list) or len(history) > 64:
+            raise RequestError("history must be an array of at most 64 steps")
+        requested_budget = payload.get("forced_budget")
+        if requested_budget is not None and (type(requested_budget) is not int or requested_budget not in (1, 2, 4)):
+            raise RequestError("forced_budget must be 1, 2 or 4")
+        session = FlySession(self.fly)
+        for step in history:
+            if not isinstance(step, dict):
+                raise RequestError("history elements must be objects")
+            earlier = parse_state(step.get("state"), maze)
+            action = parse_action(step.get("action"))
+            success = step.get("success")
+            if type(success) is not bool:
+                raise RequestError("history success must be boolean")
+            session.observe(maze, earlier)
+            session.accept_outcome(action, success)
+        return decide(self.fly, maze, state, brain_predictor(self.brain),
+                      session=session, forced_budget=requested_budget)
+
+
 def create_server(service: BrainService, host: str = "127.0.0.1", port: int = 8767) -> ThreadingHTTPServer:
     """Create but do not start a server. Caller owns its lifecycle."""
     if host not in ("127.0.0.1", "localhost"):
@@ -141,7 +172,7 @@ def create_server(service: BrainService, host: str = "127.0.0.1", port: int = 87
             return self.send_json(404, {"error": "not_found"})
 
         def do_POST(self) -> None:
-            if self.path not in ("/v1/predict", "/v1/plan"):
+            if self.path not in ("/v1/predict", "/v1/plan", "/v1/fly/decide"):
                 return self.send_json(404, {"error": "not_found"})
             if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
                 return self.send_json(415, {"error": "content_type_must_be_application_json"})
@@ -158,7 +189,12 @@ def create_server(service: BrainService, host: str = "127.0.0.1", port: int = 87
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise RequestError("body must be a JSON object")
-                result = service.predict(payload) if self.path == "/v1/predict" else service.proposed_plan(payload)
+                if self.path == "/v1/fly/decide" and service.fly is None:
+                    return self.send_json(503, {"error": "fly_model_not_loaded"})
+                if self.path == "/v1/fly/decide":
+                    result = service.fly_decision(payload)
+                else:
+                    result = service.predict(payload) if self.path == "/v1/predict" else service.proposed_plan(payload)
             except (RequestError, json.JSONDecodeError) as exc:
                 return self.send_json(400, {"error": "invalid_request", "detail": str(exc)})
             except Exception:
@@ -173,11 +209,16 @@ def create_server(service: BrainService, host: str = "127.0.0.1", port: int = 87
     return server
 
 
-def serve(checkpoint: str, host: str = "127.0.0.1", port: int = 8767) -> None:
+def serve(checkpoint: str, host: str = "127.0.0.1", port: int = 8767,
+          fly_checkpoint: str | None = None) -> None:
     from .brain import load_checkpoint
 
     brain, _ = load_checkpoint(checkpoint)
-    server = create_server(BrainService(brain), host, port)
+    fly = None
+    if fly_checkpoint is not None:
+        from .fly import load_fly
+        fly, _ = load_fly(fly_checkpoint)
+    server = create_server(BrainService(brain, fly), host, port)
     print(f"Latent Brain API: http://{host}:{server.server_port}/v1/health", flush=True)
     try:
         server.serve_forever()

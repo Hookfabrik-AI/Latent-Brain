@@ -24,3 +24,30 @@ Rows must be 2..25 high, 2..25 wide, rectangular, use only `.` and `#`, and leav
 The API binds **only to loopback**, because it has no authentication, rate limiting, or network hardening. Do not expose it through a reverse proxy or port forward without adding authentication and safeguards. No CORS is enabled, and inference does not mutate the trained weights.
 
 A planner's candidate path is **not a verification claim**. The checkpoint remains the v0.1 world model; adding HTTP endpoints does not improve its reasoning accuracy. LLM integrations, multi-step latent state learning and online adaptation are future work, not capabilities of this API.
+
+
+## `POST /v1/fly/decide` (optional experimental extension)
+
+Requires the server to be started with both `--checkpoint <transition.pt>` and
+`--fly-checkpoint <fly.pt>`. Without the latter, returns `503 fly_model_not_loaded`.
+
+```json
+{
+  "rows": ["...", ".#.", "..."],
+  "state": [0, 0],
+  "history": [{"state": [0, 0], "action": "right", "success": true}],
+  "forced_budget": 2
+}
+```
+
+Only `rows` and `state` are required. `history` contains up to 64 previous
+client-asserted observations/outcomes; these reconstruct recurrent hidden state
+per request without storing cross-user sessions. `forced_budget` is an optional
+controlled ablation (1, 2 or 4). Returns chosen `action`, `action_id`, learned
+policy and budget probabilities, chosen `thinking_budget`, number of
+hypothetical expansions and **`verification: not_executed`**. This endpoint
+never performs actions, accesses external tools or asserts success.
+
+For repeatable experiments, request the same history each time. An authenticated,
+server-side session system is **not** provided. Do not expose the localhost-only
+HTTP server publicly.
