@@ -18,7 +18,7 @@
 
 ---
 
-> **Research prototype v0.3.** Not AGI, general-purpose reasoning, or a demonstrated enhancement to any LLM. All benchmarks are on small toy maze environments.
+> **Research prototype v0.4.** Not AGI, general-purpose reasoning, or a demonstrated enhancement to any LLM. All benchmarks are on small toy maze environments.
 
 ## Why it exists
 
@@ -35,6 +35,7 @@ Can a tiny neural system learn from real state transitions and verified demonstr
 | World model | Separate learned transition predictor estimates whether a movement can succeed. |
 | External evidence | Independent maze replay judges whether a candidate plan truly worked. |
 | Local API | CPU-only HTTP inference on loopback; it does not execute or verify proposed actions. |
+| Verified reward experiment (v0.4) | Separate tiny GRU policy trained by verified **synthetic** debug outcomes. No coding agent integration. |
 
 ### Architecture
 
@@ -59,6 +60,30 @@ flowchart LR
 | A* with learned transition model | **90** |
 
 The adaptive method **did not consistently outperform** its fixed-depth counterpart across the three seeds. A* was better on this toy experiment. These findings do **not** establish general reasoning capabilities. See [design, protocols and the seed-by-seed results](docs/FLYBRAIN.md).
+
+## v0.4 · Verified Cookie Reward Learning (toy lab)
+
+A separate research track combines recurrent memory, bounded imagined action paths,
+a learned compute budget, and **one-time verifier-issued reward receipts**.
+The policy is updated from measured toy-environment outcomes, *not* from
+self-declared PASS or expert action labels. An external-agent adapter only
+**suggests** actions; it cannot execute them or grant cookies.
+
+Three training seeds (250 training episodes each), 80 unseen synthetic cases per seed:
+
+| Policy | Solved / 240 |
+|:--|--:|
+| Randomly initialized neural policy (weak baseline) | **0** |
+| Reward-trained neural policy | **240** |
+| Same policy forced to depth 1 | **240** |
+| Handwritten inspect → test → report rule | **240** |
+
+**Interpretation:** the policy learned this tiny debugging workflow, but a
+three-line non-neural rule also solves it perfectly. **No advantage of learned
+adaptive thinking has been demonstrated**; this is not a real code-repair
+benchmark. No private source code or execution traces are included.
+Read the [reward protocol and integration boundary](docs/COOKIE_REWARDS.md),
+and inspect the [multi-seed report](reports/cookie_reward_evaluation_v0.4.json).
 
 ## Quick start
 
@@ -90,6 +115,14 @@ python -m latent_brain evaluate-fly \
   --checkpoint examples/pretrained_v0.1.pt
 ```
 
+Run the separate, verified reward experiment:
+
+```bash
+python -m latent_brain train-cookie --seed 42 --episodes 250 \
+  --hidden-size 32 --reward-checkpoint checkpoints/reward.pt
+python -m latent_brain evaluate-cookie --reward-checkpoint checkpoints/reward.pt
+```
+
 ## Local inference API
 
 Start the HTTP API (loopback only):
@@ -109,7 +142,7 @@ Endpoints: `GET /v1/health`, `POST /v1/predict`, `POST /v1/plan`, `POST /v1/fly/
 
 ## Research boundaries
 
-- Actions are learned from *verified expert demonstrations*, not online trial-and-error RL.
+- The maze policy uses *verified expert demonstrations*. The separate v0.4 toy debugging policy learns from environment rewards; neither establishes coding skill.
 - The thinking-budget labels are heuristic proxies, not measured optimal compute allocations.
 - The one-step learned hidden-state model is not a general long-horizon world model.
 - No coding LLM integration or demonstrated lift on real coding benchmarks exists yet.
@@ -117,7 +150,7 @@ Endpoints: `GET /v1/health`, `POST /v1/predict`, `POST /v1/plan`, `POST /v1/fly/
 
 ## Documentation
 
-[FlyBrain design](docs/FLYBRAIN.md) · [Experiments](docs/EXPERIMENTS.md) · [Results](docs/RESULTS.md) · [API](docs/API.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[FlyBrain design](docs/FLYBRAIN.md) · [Verified rewards](docs/COOKIE_REWARDS.md) · [Experiments](docs/EXPERIMENTS.md) · [Results](docs/RESULTS.md) · [API](docs/API.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 Contributions are welcome, especially new held-out environments, calibrated baselines, adversarial evaluation, and meaningful ablations.
 

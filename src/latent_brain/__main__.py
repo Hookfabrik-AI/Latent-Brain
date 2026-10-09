@@ -12,7 +12,7 @@ from .world import make_mazes
 
 def main():
     parser = argparse.ArgumentParser(description="Latent Brain: public neural world-model experiment")
-    parser.add_argument("mode", choices=("train", "evaluate", "demo", "serve", "train-fly", "evaluate-fly", "demo-fly"))
+    parser.add_argument("mode", choices=("train", "evaluate", "demo", "serve", "train-fly", "evaluate-fly", "demo-fly", "train-cookie", "evaluate-cookie", "demo-cookie"))
     parser.add_argument("--checkpoint", default="checkpoints/brain.pt")
     parser.add_argument("--report", default="reports/evaluation.json")
     parser.add_argument("--epochs", type=int, default=8)
@@ -24,10 +24,35 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8767)
     parser.add_argument("--fly-checkpoint", default="checkpoints/fly.pt")
+    parser.add_argument("--reward-checkpoint", default="checkpoints/reward.pt")
+    parser.add_argument("--episodes", type=int, default=250)
+    parser.add_argument("--cases", type=int, default=80)
     args = parser.parse_args()
     config = TrainConfig(seed=args.seed, epochs=args.epochs, train_maps=args.train_maps,
                          test_maps=args.test_maps, hidden_size=args.hidden_size,
                          thinking_steps=args.thinking_steps)
+    if args.mode in ("train-cookie", "evaluate-cookie", "demo-cookie"):
+        from .cookies import (RewardTrainConfig, ToyDebugLab, train_reward,
+                              evaluate_reward, evaluate_rule_baseline,
+                              save_reward, load_reward, episode)
+        if args.mode == "train-cookie":
+            brain, metadata = train_reward(RewardTrainConfig(seed=args.seed,
+                                                             episodes=args.episodes,
+                                                             hidden_size=args.hidden_size))
+            Path(args.reward_checkpoint).parent.mkdir(parents=True, exist_ok=True)
+            save_reward(brain, args.reward_checkpoint, metadata)
+            print(json.dumps({"saved": args.reward_checkpoint, "training": metadata}, indent=2))
+            return
+        brain, info = load_reward(args.reward_checkpoint)
+        if args.mode == "evaluate-cookie":
+            results = evaluate_reward(brain, eval_seed=9001, cases=args.cases)
+            control = evaluate_rule_baseline(eval_seed=9001, cases=args.cases)
+            print(json.dumps({"model": "reward-fly-v1", "results": results,
+                              "handwritten_rule_baseline": control}, indent=2))
+            return
+        lab = ToyDebugLab(seed=10**10 + 9001 * 100000, instance=0)
+        print(json.dumps(episode(brain, lab, train=False), indent=2))
+        return
     if args.mode in ("train-fly", "evaluate-fly", "demo-fly"):
         from .fly import FlyTrainConfig, train_fly, evaluate_fly, load_fly, save_fly, decide
         from .planning import brain_predictor

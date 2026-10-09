@@ -1,0 +1,225 @@
+{
+  "version": "0.4.0",
+  "status": "toy_experiment_only",
+  "source_of_truth": "ToyDebugLab verified simulation actions and single-use locally signed rewards",
+  "training_episodes_per_seed": 250,
+  "held_out_cases_per_seed": 80,
+  "no_proprietary_agent_integration": true,
+  "no_real_code_execution": true,
+  "results": [
+    {
+      "seed": 42,
+      "initial_untrained": {
+        "solved": 0,
+        "cases": 80,
+        "cookies": 80,
+        "total_steps": 640,
+        "depths": {
+          "1": 8,
+          "2": 632,
+          "4": 0
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 257,
+        "depths": {
+          "1": 80,
+          "2": 9,
+          "4": 168
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_1": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 257,
+        "depths": {
+          "1": 257,
+          "2": 0,
+          "4": 0
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_4": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 257,
+        "depths": {
+          "1": 0,
+          "2": 0,
+          "4": 257
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "training": {
+        "training_episodes": 250,
+        "recent_training_success": 1.0,
+        "seed": 42,
+        "objective": "verified toy rewards, policy-gradient + value + latent-consistency"
+      },
+      "handwritten_rule": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 240,
+        "verification": "toy_execution_verified"
+      }
+    },
+    {
+      "seed": 71,
+      "initial_untrained": {
+        "solved": 0,
+        "cases": 80,
+        "cookies": 54,
+        "total_steps": 640,
+        "depths": {
+          "1": 422,
+          "2": 167,
+          "4": 51
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 278,
+        "depths": {
+          "1": 0,
+          "2": 278,
+          "4": 0
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_1": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 278,
+        "depths": {
+          "1": 278,
+          "2": 0,
+          "4": 0
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_4": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 278,
+        "depths": {
+          "1": 0,
+          "2": 0,
+          "4": 278
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "training": {
+        "training_episodes": 250,
+        "recent_training_success": 0.96,
+        "seed": 71,
+        "objective": "verified toy rewards, policy-gradient + value + latent-consistency"
+      },
+      "handwritten_rule": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 240,
+        "verification": "toy_execution_verified"
+      }
+    },
+    {
+      "seed": 123,
+      "initial_untrained": {
+        "solved": 0,
+        "cases": 80,
+        "cookies": 0,
+        "total_steps": 640,
+        "depths": {
+          "1": 417,
+          "2": 0,
+          "4": 223
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 283,
+        "depths": {
+          "1": 117,
+          "2": 0,
+          "4": 166
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_1": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 283,
+        "depths": {
+          "1": 283,
+          "2": 0,
+          "4": 0
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "trained_fixed_depth_4": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 283,
+        "depths": {
+          "1": 0,
+          "2": 0,
+          "4": 283
+        },
+        "real_toy_replays": 80,
+        "verification": "toy_execution_verified"
+      },
+      "training": {
+        "training_episodes": 250,
+        "recent_training_success": 0.96,
+        "seed": 123,
+        "objective": "verified toy rewards, policy-gradient + value + latent-consistency"
+      },
+      "handwritten_rule": {
+        "solved": 80,
+        "cases": 80,
+        "cookies": 720,
+        "total_steps": 240,
+        "verification": "toy_execution_verified"
+      }
+    }
+  ],
+  "limitations": [
+    "Tiny synthetic debugging workflow only",
+    "The untrained baseline is weak",
+    "Adaptive thinking budget is not shown to outperform fixed-depth search"
+  ],
+  "wall_seconds": 27.32,
+  "notes": [
+    "A handwritten non-neural rule equals the trained policy on this toy task.",
+    "The reward learner has not demonstrated better efficiency or adaptive thinking than fixed one-step."
+  ]
+}
