@@ -18,7 +18,7 @@
 
 ---
 
-> **Research prototype v0.4.** Not AGI, general-purpose reasoning, or a demonstrated enhancement to any LLM. All benchmarks are on small toy maze environments.
+> **Research prototype v0.4.** Not AGI, general-purpose reasoning, or a demonstrated enhancement to any LLM. Benchmarks cover small toy mazes and a tiny synthetic debugging workflow.
 
 ## Why it exists
 
@@ -31,13 +31,13 @@ Can a tiny neural system learn from real state transitions and verified demonstr
 | Recurrent memory | A GRU maintains hidden state *within* an episode. |
 | Action preference | A trained policy head proposes one of four maze actions. |
 | Bounded imagination | A learned hidden-state predictor and bounded rollouts evaluate candidate moves. |
-| Thinking budget | A budget head chooses between 1, 2 or 4 simulated steps, currently trained from heuristic proxy labels. |
+| Thinking budget | The v0.3 maze policy chooses between 1, 2 or 4 simulated steps using a budget head trained from heuristic proxy labels. |
 | World model | Separate learned transition predictor estimates whether a movement can succeed. |
 | External evidence | Independent maze replay judges whether a candidate plan truly worked. |
 | Local API | CPU-only HTTP inference on loopback; it does not execute or verify proposed actions. |
 | Verified reward experiment (v0.4) | Separate tiny GRU policy trained by verified **synthetic** debug outcomes. No coding agent integration. |
 
-### Architecture
+### FlyBrain v0.3 architecture
 
 ```mermaid
 flowchart LR
@@ -49,7 +49,7 @@ flowchart LR
     F --> G[Verified outcome]
 ```
 
-## Held-out results
+## FlyBrain v0.3 held-out results
 
 **Three training seeds, 30 held-out 7×7 mazes each:**
 
@@ -143,7 +143,7 @@ Endpoints: `GET /v1/health`, `POST /v1/predict`, `POST /v1/plan`, `POST /v1/fly/
 ## Research boundaries
 
 - The maze policy uses *verified expert demonstrations*. The separate v0.4 toy debugging policy learns from environment rewards; neither establishes coding skill.
-- The thinking-budget labels are heuristic proxies, not measured optimal compute allocations.
+- The v0.3 maze policy's thinking-budget labels are heuristic proxies. The separate v0.4 budget head learns from verified toy rewards with a computation penalty; neither establishes optimal compute allocation.
 - The one-step learned hidden-state model is not a general long-horizon world model.
 - No coding LLM integration or demonstrated lift on real coding benchmarks exists yet.
 - Published test reports and checkpoints support reproduction; results on other tasks must be established separately.
